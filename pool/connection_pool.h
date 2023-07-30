@@ -2,6 +2,7 @@
 #define CONNECT_POOL_H
 
 #include <mysql/mysql.h>
+#include <queue>
 #include <list>
 #include <string>
 #include <atomic>
@@ -18,7 +19,8 @@ class connection_pool {
 		std::string _database; // 所使用的数据库名
 		std::size_t _max_conn; // 最大连接数
 		sem_t _sem; // 信号量
-		std::list<MYSQL*> _conn_list; // 连接池，以链表作为底层结构
+		// 使用以双向链表为底层数据结构的队列构造连接池
+		std::queue<MYSQL*, std::list<MYSQL*>> _conn_queue;
 
 	private:
 		// 使用单例模式，声明私有构造，并禁止拷贝操作
@@ -33,8 +35,8 @@ class connection_pool {
 		// ****
 		// ****原子对象所管理的指针会指向堆内存，如何释放需要考虑
 		// ****
-		static std::atomic<connection_pool*> m_instance;
-		static std::mutex m_mutex;
+		static std::atomic<connection_pool*> _instance;
+		static std::mutex _mutex;
 	
 	public:
 		// 从连接池中获取一条可用连接
