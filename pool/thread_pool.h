@@ -24,8 +24,6 @@ class thread_pool {
 		typedef _thread_pool_status_type pool_status_type;
 		// 任务类型为仿函数对象（回调函数）
 		typedef std::function<Callback> task_type;
-		// 线程池数组类型
-		typedef std::vector<std::thread> threads_type;
 		// 请求队列类型，以双向链表为底层容器的队列，每个元素均表示一个任务
 		typedef std::queue<task_type, std::list<task_type>> task_queue_type;
 
@@ -35,8 +33,6 @@ class thread_pool {
 		std::size_t _thread_number;
 		// 请求队列允许的最大请求数
 		std::size_t _max_requests;
-		// 指向线程池数组的指针，线程池数组大小为_thread_number
-		threads_type* _threads;
 		// 指向请求队列的指针，队列中元素即工作线程需要竞争的共享资源
 		task_queue_type* _task_queue;
 		// 保护请求队列的互斥锁
@@ -54,7 +50,7 @@ class thread_pool {
 #ifndef NDEBUG
 			std::cout << "\ndestroy thread pool..." << std::endl;
 #endif
-			_pool_status = _pool_shutdown; delete _threads; delete _task_queue;
+			_pool_status = _pool_shutdown; delete _task_queue;
 			// 唤醒所有阻塞的工作线程，由于此时线程池变成了关闭状态
 			// 那么worker中的循环判断就不成立，因此工作线程退出
 			_cond.notify_all();
@@ -80,24 +76,20 @@ thread_pool<Callback>::thread_pool(std::size_t thread_num, std::size_t max_reque
 #endif
 	// 判断线程数和最大请求数是否合法
 	if (_thread_number <= 0 || _max_requests <= 0) throw std::exception();
-	// 分配线程池数组，大小为_thread_number
-	if (!(_threads = new threads_type())) throw std::exception();
-	_threads->reserve(_thread_number);
 	// 分配请求队列，默认初始化为空队列
 	if (!(_task_queue = new task_queue_type())) throw std::exception();
 
+	// 创建工作线程，并将工作线程与主线程分离
 	for (std::size_t i = 0; i < _thread_number; ++i) {
 #ifndef NDEBUG
 		std::cout << "** create the " << i << "-th thread" << std::endl;
 #endif
-		// 创建工作线程，使用成员函数作为工作线程的回调函数需额外传递this指针
-		_threads->emplace_back(std::thread(&thread_pool::worker, this));
-		// 将工作线程与主线程分离
-		(_threads->back()).detach();
+		// 使用成员函数作为工作线程的回调函数需额外传递this指针
+		std::thread(&thread_pool::worker, this).detach();
 	}
 #ifndef NDEBUG
 	std::cout << "** " << (_pool_status ? "(startup)" : "(shutdown)")
-		<< " thread pool size => " << _threads->size() << std::endl;
+		<< " thread pool size => " << _thread_number << std::endl;
 #endif
 }
 
@@ -145,7 +137,16 @@ void thread_pool<Callback>::worker() {
 	while (_pool_status != _pool_shutdown) {
 		// 队列中有任务，工作线程拉取并处理
 		if (!_task_queue->empty()) {
-			task_type&& task = std::move(_task_queue->front());
+			// 这两种方式可以通过编译，运行也不会报错
+			task_type task = _task_queue->front();
+			/* auto task = std::move(_task_queue->front()); */
+
+			// 以下两种方式可以通过编译，但是运行会报错--std::bad_function_call
+			// 而且最操蛋的是如果在调用add_task时，添加延时操作，能成功运行
+			// 但跑到一半会报错--std::bad_function_call，现在还想不出原因，待日后解决
+			/* task_type&& task = std::move(_task_queue->front()); */
+			/* const task_type& task = std::move(_task_queue->front()); */
+
 #ifndef NDEBUG
 			std::cout << "\nprocess task => " << &task << "..." << std::endl;
 #endif
