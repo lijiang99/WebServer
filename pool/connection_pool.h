@@ -52,7 +52,7 @@ class connection_pool {
 
 // 采用RAII机制，在构造函数中分配资源（从连接池获取连接）
 // 在析构函数中释放资源（将连接重新加入连接池）
-class connection_RAII {
+class sql_connection {
 	private:
 		MYSQL* _conn;
 		connection_pool* _conn_pool;
@@ -60,13 +60,13 @@ class connection_RAII {
 		// 通过指向连接池的指针来分配连接，并用返回的连接初始化_conn
 		// 同时为修改传入参数，需传递指针型参数，而连接本身也是指针
 		// 所以形参类型应该为二级指针
-		connection_RAII(MYSQL** sql, connection_pool* conn_pool) {
+		sql_connection(MYSQL** sql, connection_pool* conn_pool) {
 			*sql = conn_pool->get_connection();
 			_conn = *sql;
 			_conn_pool = conn_pool;
 		}
 		// 通过指向连接池的指针来释放所管理的连接
-		~connection_RAII() { _conn_pool->put_connection(_conn); }
+		~sql_connection() { _conn_pool->put_connection(_conn); }
 };
 
 #endif

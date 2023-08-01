@@ -37,7 +37,7 @@ connection_pool* connection_pool::get_instance() {
 // 根据配置文件中的信息初始化数据库连接池
 connection_pool::connection_pool() {
 #ifndef NDEBUG
-	std::cout << "initialize connection pool..." << std::endl;
+	std::cout << "\ninitialize connection pool..." << std::endl;
 #endif
 	std::ifstream ifile(_CONFIG_PATH);
 	std::string line, config;
@@ -55,12 +55,12 @@ connection_pool::connection_pool() {
 		}
 	}
 #ifndef NDEBUG
-	std::cout << "** host: " << _host << std::endl;
-	std::cout << "** user: " << _user << std::endl;
-	std::cout << "** port: " << _port << std::endl;
-	std::cout << "** password: " << _password << std::endl;
-	std::cout << "** database: " << _database << std::endl;
-	std::cout << "** max_conn: " << _max_conn << std::endl;
+	std::cout << "** host => " << _host << std::endl;
+	std::cout << "** user => " << _user << std::endl;
+	std::cout << "** port => " << _port << std::endl;
+	std::cout << "** password => " << _password << std::endl;
+	std::cout << "** database => " << _database << std::endl;
+	std::cout << "** max_conn => " << _max_conn << std::endl;
 #endif
 
 	// 根据最大连接数预分配连接并添加到队列中
@@ -85,13 +85,13 @@ connection_pool::connection_pool() {
 		// 向连接池中加入一条连接
 		_conn_queue.push(conn);
 #ifndef NDEBUG
-		std::cout << "** open mysql connection: " << conn << std::endl;
+		std::cout << "** open mysql connection => " << conn << std::endl;
 #endif
 	}
 	// 信号量初始化为最大连接数
 	sem_init(&_sem, 0, _max_conn);
 #ifndef NDEBUG
-	std::cout << "** connection pool size: " << _conn_queue.size() << std::endl;
+	std::cout << "** (success) connection pool size => " << _conn_queue.size() << std::endl;
 #endif
 }
 
@@ -105,13 +105,13 @@ MYSQL* connection_pool::get_connection() {
 	// 取队列首元素作为可用连接
 	std::lock_guard<std::mutex> lock(_mutex);
 #ifndef NDEBUG
-	std::cout << "get connection from pool..." << std::endl;
+	std::cout << "\nget connection from pool..." << std::endl;
 #endif
 	MYSQL *conn = _conn_queue.front();
 	_conn_queue.pop();
 #ifndef NDEBUG
-	std::cout << "** get mysql connection: " << conn << std::endl;
-	std::cout << "** connection pool size: " << _conn_queue.size() << std::endl;
+	std::cout << "** get mysql connection => " << conn << std::endl;
+	std::cout << "** (success) connection pool size => " << _conn_queue.size() << std::endl;
 #endif
 
 	return conn;
@@ -121,40 +121,41 @@ MYSQL* connection_pool::get_connection() {
 void connection_pool::put_connection(MYSQL *conn) {
 	if (conn == nullptr) {
 #ifndef NDEBUG
-		std::cout << "cannot put invalid connection" << std::endl;
+		std::cout << "\nput connection to pool..." << std::endl;
+		std::cout << "** (failure) cannot put invalid connection" << std::endl;
 #endif
 		return;
 	}
 	// 将连接重新加入队列中
 	std::lock_guard<std::mutex> lock(_mutex);
 #ifndef NDEBUG
-	std::cout << "put connection from pool..." << std::endl;
+	std::cout << "\nput connection to pool..." << std::endl;
 #endif
 	_conn_queue.push(conn);
 	// 信号量加1，相当于V操作
 	sem_post(&_sem);
 #ifndef NDEBUG
-	std::cout << "** put mysql connection: " << conn << std::endl;
-	std::cout << "** connection pool size: " << _conn_queue.size() << std::endl;
+	std::cout << "** put mysql connection => " << conn << std::endl;
+	std::cout << "** (success) connection pool size => " << _conn_queue.size() << std::endl;
 #endif
 }
 
 // 销毁数据库连接池
 void connection_pool::destroy() {
 #ifndef NDEBUG
-	std::cout << "destroy connection pool..." << std::endl;
+	std::cout << "\ndestroy connection pool..." << std::endl;
 #endif
 	std::lock_guard<std::mutex> lock(_mutex);
 	// 关闭队列中所有的数据库连接，并清空队列
 	while (!_conn_queue.empty()) {
 #ifndef NDEBUG
-		std::cout << "** close mysql connection: " << _conn_queue.front() << std::endl;
+		std::cout << "** close mysql connection => " << _conn_queue.front() << std::endl;
 #endif
 		mysql_close(_conn_queue.front());
 		_conn_queue.pop();
 	}
 	mysql_library_end();
 #ifndef NDEBUG
-	std::cout << "** connection pool size: " << _conn_queue.size() << std::endl;
+	std::cout << "** (success) connection pool size => " << _conn_queue.size() << std::endl;
 #endif
 }
