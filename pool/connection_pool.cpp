@@ -1,13 +1,12 @@
 #include <mysql/mysql.h>
 #include <mutex>
 #include <string>
-#include <iostream>
-#include <fstream>
-#include <sstream>
+#include <stdexcept>
 #include "connection_pool.h"
 
-// 全局的数据库连接池配置文件路径
-#define _CONFIG_PATH "./connection_pool.cnf"
+#ifndef NDEBUG
+#include <iostream>
+#endif
 
 // 采用单例模式（懒汉式），并使用局部静态变量确保线程安全
 connection_pool* connection_pool::get_instance() {
@@ -16,25 +15,24 @@ connection_pool* connection_pool::get_instance() {
 }
 
 // 根据配置文件中的信息初始化数据库连接池
-connection_pool::connection_pool() {
+void connection_pool::init(const std::string& host, const std::string& user, std::size_t port,
+		const std::string& password, const std::string& database, std::size_t max_conn) {
+	bool expected = false;
+	// 利用原子变量判断初始化状态，只允许初始化一次，禁止重复初始化
+	// compare_exchange_weak为CAS(compare and swap)操作
+	// 若当前_init_status == expected，表示尚未初始化，则将true赋给_init_status，并返回true
+	// 若当前_init_status != expected，表示已初始化过，则将_init_status赋给expected，并返回false
+	if (!_init_status.compare_exchange_weak(expected, true))
+		throw std::runtime_error("connection pool already initialized");
+
 #ifndef NDEBUG
 	std::cout << "\ninitialize connection pool..." << std::endl;
 #endif
-	std::ifstream ifile(_CONFIG_PATH);
-	std::string line, config;
 
-	// 读取配置文件信息
-	while (std::getline(ifile, line)) {
-		std::istringstream input(line);
-		if (input >> config) {
-			if (config == "host") input >> _host;
-			else if (config == "user") input >> _user;
-			else if (config == "port") input >> _port;
-			else if (config == "password") input >> _password;
-			else if (config == "database") input >> _database;
-			else if (config == "max_conn") input >> _max_conn;
-		}
-	}
+	// 初始化数据库信息
+	_host = host; _user = user; _port = port;
+	_password = password; _database = database; _max_conn = max_conn;
+
 #ifndef NDEBUG
 	std::cout << "** host => " << _host << std::endl;
 	std::cout << "** user => " << _user << std::endl;
@@ -45,23 +43,19 @@ connection_pool::connection_pool() {
 #endif
 
 	// 根据最大连接数预分配连接并添加到队列中
+	std::lock_guard<std::mutex> lock(_mutex);
 	for (std::size_t i = 0; i < _max_conn; ++i) {
 		MYSQL* conn = nullptr;
 
 		// 初始化连接
 		conn = mysql_init(conn);
-		if (conn == nullptr) {
-			std::cout << "Error: " << mysql_error(conn);
-			exit(1);
-		}
-
+		if (conn == nullptr)
+			throw std::runtime_error("failed to initialize database connection");
 		// 建立一条实际的数据库连接
 		conn = mysql_real_connect(conn, _host.c_str(), _user.c_str(),
 				_password.c_str(), _database.c_str(), _port, nullptr, 0);
-		if (conn == nullptr) {
-			std::cout << "Error: " << mysql_error(conn);
-			exit(1);
-		}
+		if (conn == nullptr)
+			throw std::runtime_error("failed to establish database connection");
 
 		// 向连接池中加入一条连接
 		_conn_queue.push(conn);

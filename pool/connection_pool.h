@@ -5,18 +5,23 @@
 #include <queue>
 #include <list>
 #include <string>
+#include <atomic>
 #include <mutex>
 #include <semaphore.h>
 
 // 数据库连接池
 class connection_pool {
 	private:
+		typedef std::atomic_bool init_status_type;
+
 		std::string _host; // 主机地址
 		std::string _user; // 数据库用户名
 		std::size_t _port; // 数据库端口号
 		std::string _password; // 数据库密码
 		std::string _database; // 所使用的数据库名
 		std::size_t _max_conn; // 最大连接数
+		// 原子变量，用于判断连接池是否已经初始化
+		init_status_type _init_status;
 		std::mutex _mutex; // 互斥锁
 		sem_t _sem; // 信号量
 		// 使用以双向链表为底层数据结构的队列构造连接池
@@ -24,13 +29,16 @@ class connection_pool {
 
 	private:
 		// 使用单例模式，声明私有构造，并禁止拷贝操作
-		connection_pool(); 
+		connection_pool() : _init_status(false) {} 
 		connection_pool(const connection_pool& rhs) = delete;
 		connection_pool& operator=(const connection_pool& rhs) = delete;
 	
 	public:
 		// 静态成员函数，获取单例模式的实例
 		static connection_pool* get_instance();
+		// 初始化单例模式的实例
+		void init(const std::string& host, const std::string& user, std::size_t port,
+				const std::string& password, const std::string& database, std::size_t max_conn);
 	
 		// 从连接池中获取一条可用连接
 		MYSQL* get_connection();
