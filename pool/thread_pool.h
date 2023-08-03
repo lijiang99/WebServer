@@ -7,7 +7,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
-#include <exception>
+#include <stdexcept>
 
 #ifndef NDEBUG
 #include <iostream>
@@ -43,7 +43,7 @@ class thread_pool {
 
 	public:
 		// 构造函数
-		thread_pool(std::size_t thread_num, std::size_t max_requests);
+		thread_pool(int thread_number, int max_requests);
 
 		// 析构函数
 		~thread_pool();
@@ -57,15 +57,19 @@ class thread_pool {
 
 // 构造函数，初始化线程池信息，并创建工作线程
 template <typename Callback>
-thread_pool<Callback>::thread_pool(std::size_t thread_num, std::size_t max_requests)
-	: _thread_number(thread_num), _max_requests(max_requests), _pool_status(_pool_startup) {
+thread_pool<Callback>::thread_pool(int thread_number, int max_requests) : _pool_status(_pool_startup) {
 #ifndef NDEBUG
 		std::cout << "\ninitialize thread pool..." << std::endl;
 #endif
 	// 判断线程数和最大请求数是否合法
-	if (_thread_number <= 0 || _max_requests <= 0) throw std::exception();
+	if (thread_number <= 0 || max_requests <= 0)
+		throw std::runtime_error("invalid number of threads or requests");
 	// 分配请求队列，默认初始化为空队列
-	if (!(_task_queue = new task_queue_type())) throw std::exception();
+	if (!(_task_queue = new task_queue_type()))
+		throw std::runtime_error("failed to allocate memory for task queue");
+
+	_thread_number = static_cast<std::size_t>(thread_number);
+	_max_requests = static_cast<std::size_t>(max_requests);
 
 	// 创建工作线程，并将工作线程与主线程分离
 	for (std::size_t i = 0; i < _thread_number; ++i) {
