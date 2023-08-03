@@ -5,7 +5,6 @@
 #include <queue>
 #include <list>
 #include <string>
-#include <atomic>
 #include <mutex>
 #include <semaphore.h>
 
@@ -18,6 +17,7 @@ class connection_pool {
 		std::string _password; // 数据库密码
 		std::string _database; // 所使用的数据库名
 		std::size_t _max_conn; // 最大连接数
+		std::mutex _mutex; // 互斥锁
 		sem_t _sem; // 信号量
 		// 使用以双向链表为底层数据结构的队列构造连接池
 		std::queue<MYSQL*, std::list<MYSQL*>> _conn_queue;
@@ -29,16 +29,9 @@ class connection_pool {
 		connection_pool& operator=(const connection_pool& rhs) = delete;
 	
 	public:
-		// 获取单例模式的实例
+		// 静态成员函数，获取单例模式的实例
 		static connection_pool* get_instance();
-		// 原子对象和互斥锁
-		// ****
-		// ****原子对象所管理的指针会指向堆内存，如何释放需要考虑
-		// ****
-		static std::atomic<connection_pool*> _instance;
-		static std::mutex _mutex;
 	
-	public:
 		// 从连接池中获取一条可用连接
 		MYSQL* get_connection();
 		// 释放当前连接（加入连接池）

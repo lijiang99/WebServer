@@ -1,5 +1,4 @@
 #include <mysql/mysql.h>
-#include <atomic>
 #include <mutex>
 #include <string>
 #include <iostream>
@@ -10,28 +9,10 @@
 // 全局的数据库连接池配置文件路径
 #define _CONFIG_PATH "./connection_pool.cnf"
 
-// 默认初始化原子对象
-std::atomic<connection_pool*> connection_pool::_instance;
-std::mutex connection_pool::_mutex;
-
-// 采用单例模式（懒汉式），并使用双检查锁确保线程安全和效率。
+// 采用单例模式（懒汉式），并使用局部静态变量确保线程安全
 connection_pool* connection_pool::get_instance() {
-	connection_pool* tmp = _instance.load(std::memory_order_relaxed);
-	// 设置内存屏障进行内存保护，确保tmp被赋值时不会被reorder
-	std::atomic_thread_fence(std::memory_order_acquire);
-	if (tmp == nullptr) {
-		// 双检查锁
-		std::lock_guard<std::mutex> lock(_mutex);
-		tmp = _instance.load(std::memory_order_relaxed);
-		if (tmp == nullptr) {
-			// 初始化全局唯一的单例对象
-			tmp = new connection_pool();
-			// 释放内存屏障
-			std::atomic_thread_fence(std::memory_order_release);
-			_instance.store(tmp, std::memory_order_relaxed);
-		}
-	}
-	return tmp;
+	static connection_pool conn_pool;
+	return &conn_pool;
 }
 
 // 根据配置文件中的信息初始化数据库连接池
