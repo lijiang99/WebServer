@@ -34,7 +34,7 @@ class thread_pool {
 		// 请求队列允许的最大请求数
 		std::size_t _max_requests;
 		// 指向请求队列的指针，队列中元素即工作线程需要竞争的共享资源
-		task_queue_type* _task_queue;
+		task_queue_type *_task_queue;
 		// 保护请求队列的互斥锁
 		std::mutex _mutex;
 		// 用于生产者/消费者（工作线程）模型的条件变量，需要搭配互斥锁一起使用
@@ -49,7 +49,7 @@ class thread_pool {
 		~thread_pool();
 
 		// 向请求队列中添加任务
-		void add_task(task_type&& task);
+		void add_task(task_type &&task);
 
 		// 工作线程从请求队列中拉取任务进行处理
 		void worker();
@@ -105,7 +105,7 @@ thread_pool<Callback>::~thread_pool() {
 // 向请求队列中添加任务，右值引用用于模板转发实参
 // 函数形参为指向模板类型参数的右值引用，可保持实参的所有类型信息
 template <typename Callback>
-void thread_pool<Callback>::add_task(task_type&& task) {
+void thread_pool<Callback>::add_task(task_type &&task) {
 	// 向请求队列中添加任务，需要对请求队列进行锁保护
 	std::unique_lock<std::mutex> lock(_mutex);
 #ifndef NDEBUG

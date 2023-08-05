@@ -48,8 +48,8 @@ class block_deque {
 		T back() { std::lock_guard<std::mutex> lock(_mutex); return _deque.back(); }
 
 		// 队列的添加/删除元素的操作
-		void push_front(const T& item);
-		void push_back(const T& item);
+		void push_front(const T &item);
+		void push_back(const T &item);
 		bool pop(T &item);
 		bool pop(T &item, int timeout);
 		void clear() { std::lock_guard<std::mutex> lock(_mutex); _deque.clear(); }
@@ -62,7 +62,7 @@ class block_deque {
 
 // 在队列头部添加元素
 template <typename T>
-void block_deque<T>::push_front(const T& item) {
+void block_deque<T>::push_front(const T &item) {
 	std::unique_lock<std::mutex> lock(_mutex);
 	while (_deque.size() >= _max_capacity)
 		_cond_producer.wait(lock);
@@ -72,7 +72,7 @@ void block_deque<T>::push_front(const T& item) {
 
 // 在队列尾部添加元素
 template <typename T>
-void block_deque<T>::push_back(const T& item) {
+void block_deque<T>::push_back(const T &item) {
 	std::unique_lock<std::mutex> lock(_mutex);
 	while (_deque.size() >= _max_capacity)
 		_cond_producer.wait(lock);

@@ -30,20 +30,20 @@ class connection_pool {
 	private:
 		// 使用单例模式，声明私有构造，并禁止拷贝操作
 		connection_pool() : _init_status(false) {} 
-		connection_pool(const connection_pool& rhs) = delete;
-		connection_pool& operator=(const connection_pool& rhs) = delete;
+		connection_pool(const connection_pool &rhs) = delete;
+		connection_pool& operator=(const connection_pool &rhs) = delete;
 	
 	public:
 		// 静态成员函数，获取单例模式的实例
 		static connection_pool* get_instance();
 		// 初始化单例模式的实例
-		void init(const std::string& host, const std::string& user, std::size_t port,
-				const std::string& password, const std::string& database, std::size_t max_conn);
+		void init(const std::string &host, const std::string &user, std::size_t port,
+				const std::string &password, const std::string &database, std::size_t max_conn);
 	
 		// 从连接池中获取一条可用连接
 		MYSQL* get_connection();
 		// 释放当前连接（加入连接池）
-		void put_connection(MYSQL* conn);
+		void put_connection(MYSQL *conn);
 
 		// 销毁数据库连接池
 		void destroy();
@@ -55,13 +55,13 @@ class connection_pool {
 // 在析构函数中释放资源（将连接重新加入连接池）
 class sql_connection {
 	private:
-		MYSQL* _conn;
-		connection_pool* _conn_pool;
+		MYSQL *_conn;
+		connection_pool *_conn_pool;
 	public:
 		// 通过指向连接池的指针来分配连接，并用返回的连接初始化_conn
 		// 同时为修改传入参数，需传递指针型参数，而连接本身也是指针
 		// 所以形参类型应该为二级指针
-		sql_connection(MYSQL** sql, connection_pool* conn_pool) {
+		sql_connection(MYSQL **sql, connection_pool *conn_pool) {
 			*sql = conn_pool->get_connection();
 			_conn = *sql;
 			_conn_pool = conn_pool;

@@ -15,8 +15,8 @@ connection_pool* connection_pool::get_instance() {
 }
 
 // 根据配置文件中的信息初始化数据库连接池
-void connection_pool::init(const std::string& host, const std::string& user, std::size_t port,
-		const std::string& password, const std::string& database, std::size_t max_conn) {
+void connection_pool::init(const std::string &host, const std::string &user, std::size_t port,
+		const std::string &password, const std::string &database, std::size_t max_conn) {
 	bool expected = false;
 	// 利用原子变量判断初始化状态，只允许初始化一次，禁止重复初始化
 	// compare_exchange_weak为CAS(compare and swap)操作
