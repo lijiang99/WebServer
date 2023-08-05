@@ -9,10 +9,14 @@
 #include <mutex>
 #include <semaphore.h>
 
+typedef bool _connection_pool_status_type;
+const _connection_pool_status_type _pool_initialized = true;
+const _connection_pool_status_type _pool_uninitialized = false;
+
 // 数据库连接池
 class connection_pool {
 	private:
-		typedef std::atomic_bool init_status_type;
+		typedef _connection_pool_status_type pool_status_type;
 
 		std::string _host; // 主机地址
 		std::string _user; // 数据库用户名
@@ -21,7 +25,7 @@ class connection_pool {
 		std::string _database; // 所使用的数据库名
 		std::size_t _max_conn; // 最大连接数
 		// 原子变量，用于判断连接池是否已经初始化
-		init_status_type _init_status;
+		std::atomic<pool_status_type> _pool_status;
 		std::mutex _mutex; // 互斥锁
 		sem_t _sem; // 信号量
 		// 使用以双向链表为底层数据结构的队列构造连接池
@@ -29,7 +33,7 @@ class connection_pool {
 
 	private:
 		// 使用单例模式，声明私有构造，并禁止拷贝操作
-		connection_pool() : _init_status(false) {} 
+		connection_pool() : _pool_status(_pool_uninitialized) {} 
 		connection_pool(const connection_pool &rhs) = delete;
 		connection_pool& operator=(const connection_pool &rhs) = delete;
 	

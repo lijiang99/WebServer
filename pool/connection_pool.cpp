@@ -17,12 +17,12 @@ connection_pool* connection_pool::get_instance() {
 // 根据初始化状态判断是否真的需要初始化全局唯一的数据库连接池，并确保线程安全
 void connection_pool::init(const std::string &host, const std::string &user, int port,
 		const std::string &password, const std::string &database, int max_conn) {
-	bool expected = false;
+	pool_status_type expected = _pool_uninitialized;
 	// 利用原子变量判断初始化状态，只允许初始化一次，禁止重复初始化
 	// compare_exchange_weak为CAS(compare and swap)操作
-	// 若当前_init_status == expected，表示尚未初始化，则将true赋给_init_status，并返回true
+	// 若当前_init_status == expected，表示尚未初始化，则将_pool_initialized赋给_init_status，并返回true
 	// 若当前_init_status != expected，表示已初始化过，则将_init_status赋给expected，并返回false
-	if (!_init_status.compare_exchange_weak(expected, true))
+	if (!_pool_status.compare_exchange_weak(expected, _pool_initialized))
 		throw std::runtime_error("connection pool already initialized");
 
 #ifndef NDEBUG
