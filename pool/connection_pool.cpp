@@ -14,7 +14,7 @@ connection_pool* connection_pool::get_instance() {
 	return &conn_pool;
 }
 
-// 根据配置文件中的信息初始化数据库连接池
+// 根据初始化状态判断是否真的需要初始化全局唯一的数据库连接池，并确保线程安全
 void connection_pool::init(const std::string &host, const std::string &user, int port,
 		const std::string &password, const std::string &database, int max_conn) {
 	bool expected = false;
@@ -48,7 +48,6 @@ void connection_pool::init(const std::string &host, const std::string &user, int
 #endif
 
 	// 根据最大连接数预分配连接并添加到队列中
-	std::lock_guard<std::mutex> lock(_mutex);
 	for (std::size_t i = 0; i < _max_conn; ++i) {
 		MYSQL* conn = nullptr;
 
