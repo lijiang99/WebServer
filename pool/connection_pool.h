@@ -37,8 +37,8 @@ class connection_pool {
 		// 静态成员函数，获取单例模式的实例
 		static connection_pool* get_instance();
 		// 初始化单例模式的实例
-		void init(const std::string &host, const std::string &user, std::size_t port,
-				const std::string &password, const std::string &database, std::size_t max_conn);
+		void init(const std::string &host, const std::string &user, int port,
+				const std::string &password, const std::string &database, int max_conn);
 	
 		// 从连接池中获取一条可用连接
 		MYSQL* get_connection();

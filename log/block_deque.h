@@ -4,6 +4,7 @@
 #include <deque>
 #include <mutex>
 #include <condition_variable>
+#include <stdexcept>
 
 typedef bool _block_deque_status_type;
 const _block_deque_status_type _deque_open = true;
@@ -29,8 +30,7 @@ class block_deque {
 	
 	public:
 		// 构造函数
-		explicit block_deque(std::size_t max_capacity = 1000)
-			: _max_capacity(max_capacity), _deque_status(_deque_open) {}
+		explicit block_deque(int max_capacity = 1000);
 		// 析构函数
 		~block_deque() { close(); }
 
@@ -59,6 +59,14 @@ class block_deque {
 		// 关闭队列
 		void close();
 };
+
+// 构造函数
+template <typename T>
+block_deque<T>::block_deque(int max_capacity) : _deque_status(_deque_open) {
+	if (max_capacity <= 0)
+		throw std::runtime_error("invalid number of max_capacity");
+	_max_capacity = static_cast<std::size_t>(max_capacity);
+}
 
 // 在队列头部添加元素
 template <typename T>

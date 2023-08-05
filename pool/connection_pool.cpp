@@ -15,8 +15,8 @@ connection_pool* connection_pool::get_instance() {
 }
 
 // 根据配置文件中的信息初始化数据库连接池
-void connection_pool::init(const std::string &host, const std::string &user, std::size_t port,
-		const std::string &password, const std::string &database, std::size_t max_conn) {
+void connection_pool::init(const std::string &host, const std::string &user, int port,
+		const std::string &password, const std::string &database, int max_conn) {
 	bool expected = false;
 	// 利用原子变量判断初始化状态，只允许初始化一次，禁止重复初始化
 	// compare_exchange_weak为CAS(compare and swap)操作
@@ -29,9 +29,14 @@ void connection_pool::init(const std::string &host, const std::string &user, std
 	std::cout << "\ninitialize connection pool..." << std::endl;
 #endif
 
+	if (port <= 0 || max_conn <= 0)
+		throw std::runtime_error("invalid number of port or max_conn");
+
 	// 初始化数据库信息
-	_host = host; _user = user; _port = port;
-	_password = password; _database = database; _max_conn = max_conn;
+	_host = host; _user = user;
+	_port = static_cast<std::size_t>(port);
+	_password = password; _database = database;
+	_max_conn = static_cast<std::size_t>(max_conn);
 
 #ifndef NDEBUG
 	std::cout << "** host => " << _host << std::endl;
