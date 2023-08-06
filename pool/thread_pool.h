@@ -41,6 +41,10 @@ class thread_pool {
 		std::condition_variable _cond_producer;
 		std::condition_variable _cond_consumer;
 
+	private:
+		// 工作线程从请求队列中拉取任务进行处理
+		void worker();
+
 	public:
 		// 构造函数
 		thread_pool(int thread_number, int max_requests);
@@ -50,9 +54,6 @@ class thread_pool {
 
 		// 向请求队列中添加任务
 		void add_task(task_type &&task);
-
-		// 工作线程从请求队列中拉取任务进行处理
-		void worker();
 };
 
 // 构造函数，初始化线程池信息，并创建工作线程
