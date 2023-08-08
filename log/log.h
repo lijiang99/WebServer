@@ -103,7 +103,7 @@ const _log_write_mode_type _async_write = true;
 const _log_write_mode_type _sync_write = false;
 
 // 枚举类型，定义四种日志信息级别
-enum class log_level { debug, info, warn, error };
+enum class LOG_LEVEL { DEBUG, INFO, WARN, ERROR };
 
 // 日志类，可用于同步/异步写入日志
 class log {
@@ -151,7 +151,7 @@ class log {
 		// 初始化单例模式的实例
 		void init(const std::string &dir_path, int max_lines, int max_queue_capacity = 0);
 		// 可变参模板，根据写入方式，向文件输出流对象同步/异步写入日志信息
-		template <typename... Args> void write_log(log_level level, const Args &...rest);
+		template <typename... Args> void write_log(LOG_LEVEL level, const Args &...rest);
 		// 析构函数，需要在内部销毁阻塞队列，并关闭文件输出流
 		~log() {
 #ifndef NDEBUG
@@ -180,7 +180,7 @@ std::ostringstream& log::to_ostringstream(std::ostringstream &os, const T &t, co
 
 // 可变参模板，可设置日志信息级别，并将任意类型的多个对象组合成字符串形式的日志信息
 template <typename ...Args>
-void log::write_log(log_level level, const Args &...rest) {
+void log::write_log(LOG_LEVEL level, const Args &...rest) {
 	// 获取当前系统时间，并提取天数
 	std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
 	std::chrono::days tmp_days = std::chrono::duration_cast<std::chrono::days>(now.time_since_epoch());
@@ -208,20 +208,20 @@ void log::write_log(log_level level, const Args &...rest) {
 	message << get_format_time(now) << " ";
 	// 设置消息头中的消息等级
 	switch (level) {
-		case log_level::debug:
-			message << "[debug]: ";
+		case LOG_LEVEL::DEBUG:
+			message << "[DEBUG]: ";
 			break;
-		case log_level::info:
-			message << "[info]: ";
+		case LOG_LEVEL::INFO:
+			message << "[INFO]: ";
 			break;
-		case log_level::warn:
-			message << "[warn]: ";
+		case LOG_LEVEL::WARN:
+			message << "[WARN]: ";
 			break;
-		case log_level::error:
-			message << "[error]: ";
+		case LOG_LEVEL::ERROR:
+			message << "[ERROR]: ";
 			break;
 		default:
-			message << "[info]: ";
+			message << "[INFO]: ";
 			break;
 	}
 
@@ -234,9 +234,9 @@ void log::write_log(log_level level, const Args &...rest) {
 }
 
 // 宏函数，使写入日志消息更加便捷
-#define LOG_DEBUG(...) log::get_instance()->write_log(log_level::debug, ##__VA_ARGS__)
-#define LOG_INFO(...) log::get_instance()->write_log(log_level::info, ##__VA_ARGS__)
-#define LOG_WARN(...) log::get_instance()->write_log(log_level::warn, ##__VA_ARGS__)
-#define LOG_ERROR(...) log::get_instance()->write_log(log_level::error, ##__VA_ARGS__)
+#define LOG_DEBUG(...) log::get_instance()->write_log(LOG_LEVEL::DEBUG, ##__VA_ARGS__)
+#define LOG_INFO(...) log::get_instance()->write_log(LOG_LEVEL::INFO, ##__VA_ARGS__)
+#define LOG_WARN(...) log::get_instance()->write_log(LOG_LEVEL::WARN, ##__VA_ARGS__)
+#define LOG_ERROR(...) log::get_instance()->write_log(LOG_LEVEL::ERROR, ##__VA_ARGS__)
 
 #endif
