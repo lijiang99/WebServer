@@ -152,6 +152,8 @@ class log {
 		void init(const std::string &dir_path, int max_lines, int max_queue_capacity = 0);
 		// 可变参模板，根据写入方式，向文件输出流对象同步/异步写入日志信息
 		template <typename... Args> void write_log(LOG_LEVEL level, const Args &...rest);
+		// 手动刷新文件输出流缓冲区
+		void flush() { _file_output << std::flush; }
 		// 析构函数，需要在内部销毁阻塞队列，并关闭文件输出流
 		~log() {
 #ifndef NDEBUG
