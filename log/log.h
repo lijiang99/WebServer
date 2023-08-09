@@ -137,9 +137,10 @@ class log {
 		// 异步写入日志信息
 		void async_write_log();
 		
-		// 模板成员函数，将单个对象写入字符串输出流
+		// 模板成员函数，将单个对象写入字符串输出流，将作为重载的可变参版本的递归终止条件
+		// 即向文件输出流对象写入最后一个数据，并添加换行符表示该日志消息结束
 		template <typename T>
-		std::ostringstream& to_ostringstream(std::ostringstream &os, const T &t) { os << t; return os; }
+		std::ostringstream& to_ostringstream(std::ostringstream &os, const T &t) { os << t << '\n'; return os; }
 
 		// 可变参模板，将任意类型的多个对象写入字符串输出流
 		template <typename T, typename... Args>
