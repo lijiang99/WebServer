@@ -28,40 +28,43 @@ static std::string get_format_time(const std::chrono::system_clock::time_point &
 typedef std::chrono::high_resolution_clock::time_point expire_type;
 typedef std::chrono::milliseconds interval_type;
 
-class timer_type; // 前向声明
+class util_timer; // 前向声明
 
 // 用户数据，绑定socket和定时器
 struct client_data {
 	sockaddr_in address;
 	int sockfd;
-	std::string buffer;
-	timer_type *timer;
+	util_timer *timer;
 };
 
 // 定时器类
-struct timer_type {
-	/* typedef void(*callback_type)(client_data*); */
-	typedef void(*callback_type)();
+struct util_timer {
+	typedef void(*callback_type)(client_data*);
 
 	expire_type expire; // 定时器的超时时间（绝对时间）
 	callback_type timeout_callback; // 定时器的回调函数
-	/* client_data* user_data; // 用户数据 */
-
-	// 重载大于运算符，作为时间堆中的排序准则
-	bool operator>(const timer_type &rhs) const { return expire > rhs.expire; }
+	client_data* user_data; // 用户数据
 };
 
-// 时间堆类，默认为最小堆，所以使用greater作为比较准则
-template <typename Timer, typename Compare = std::greater<Timer>>
+// 模板函数，比较两个指针所指向的定时器的超时时间，作为时间堆中的比较准则
+template <typename Timer>
+struct greater_exprie {
+	bool operator()(const Timer* lhs, const Timer* rhs) { return lhs->expire > rhs->expire; }
+};
+
+// 时间堆类（应以最小堆实现）
+template <typename Timer, typename Compare = greater_exprie<Timer>>
 class timer_heap {
 	private:
-		typedef std::vector<Timer> heap_type;
-		heap_type *_heap; // 以vector作为堆的底层容器
+		typedef std::vector<Timer*> heap_type;
+		/* typedef bool(*compare_type)(const Timer*, const Timer*); */
+
+		heap_type *_heap; // 以vector作为时间堆的底层容器
 		Compare _compare; // 用于调整堆结构的比较准则
 
 	public:
 		// 构造函数，初始化一个空堆
-		timer_heap(const Compare &comp = Compare()) : _compare(comp) {
+		timer_heap(Compare comp = Compare()) : _compare(comp) {
 #ifndef NDEBUG
 			std::cout << "\ninitialize timer heap..." << std::endl;
 #endif
@@ -75,6 +78,12 @@ class timer_heap {
 #ifndef NDEBUG
 			std::cout << "\ndestroy timer heap..." << std::endl;
 #endif
+			for (typename heap_type::size_type i = 0; i < _heap->size(); ++i) {
+#ifndef NDEBUG
+				std::cout << "** deallocate timer expire => " << get_format_time(_heap->at(i)->expire) << std::endl;
+#endif
+				delete (*_heap)[i];
+			}
 			delete _heap;
 #ifndef NDEBUG
 			std::cout << "** deallocate timer heap" << std::endl;
@@ -82,7 +91,7 @@ class timer_heap {
 		}
 
 		// 向堆中添加一个定时器
-		inline void push_timer(const Timer &timer);
+		inline void push_timer(Timer *timer);
 		// 删除堆顶的定时器
 		inline void pop_timer();
 
@@ -92,7 +101,7 @@ class timer_heap {
 
 // 向堆中添加一个定时器
 template <typename Timer, typename Compare>
-void timer_heap<Timer, Compare>::push_timer(const Timer &timer) {
+void timer_heap<Timer, Compare>::push_timer(Timer *timer) {
 #ifndef NDEBUG
 	std::cout << "\nadd timer into timer heap..." << std::endl;
 #endif
@@ -100,7 +109,7 @@ void timer_heap<Timer, Compare>::push_timer(const Timer &timer) {
 	_heap->push_back(timer);
 	std::push_heap(_heap->begin(), _heap->end(), _compare);
 #ifndef NDEBUG
-	std::cout << "** (success) timer expire => " << get_format_time(timer.expire) << std::endl;
+	std::cout << "** (success) timer expire => " << get_format_time(timer->expire) << std::endl;
 #endif
 }
 
@@ -114,7 +123,7 @@ void timer_heap<Timer, Compare>::pop_timer() {
 	// 再通过底层vector的pop_back实现真正的删除（删除原先的堆顶元素）
 	std::pop_heap(_heap->begin(), _heap->end(), _compare);
 #ifndef NDEBUG
-	std::cout << "** (success) timer expire => " << get_format_time((_heap->back()).expire) << std::endl;
+	std::cout << "** (success) timer expire => " << get_format_time(_heap->back()->expire) << std::endl;
 #endif
 	_heap->pop_back();
 }
@@ -130,7 +139,7 @@ void timer_heap<Timer, Compare>::tick() {
 		typename heap_type::iterator iter = _heap->begin();
 		// 计算超时时间与当前时间间隔
 		expire_type now = std::chrono::high_resolution_clock::now();
-		interval_type interval_time = std::chrono::duration_cast<interval_type>(iter->expire - now);
+		interval_type interval_time = std::chrono::duration_cast<interval_type>((*iter)->expire - now);
 #ifndef NDEBUG
 		std::cout << "** now time => " << get_format_time(now) << std::endl;
 #endif
@@ -142,10 +151,9 @@ void timer_heap<Timer, Compare>::tick() {
 			break;
 		}
 #ifndef NDEBUG
-		std::cout << "** timer expired => " << get_format_time(iter->expire) << std::endl;
+		std::cout << "** timer expired => " << get_format_time((*iter)->expire) << std::endl;
 #endif
-		/* iter->timeout_callback(iter->user_data); */
-		iter->timeout_callback();
+		(*iter)->timeout_callback((*iter)->user_data);
 		pop_timer();
 	}
 }
