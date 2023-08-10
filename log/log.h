@@ -241,5 +241,6 @@ void log::write_log(LOG_LEVEL level, const Args &...rest) {
 #define LOG_INFO(...) log::get_instance()->write_log(LOG_LEVEL::INFO, ##__VA_ARGS__)
 #define LOG_WARN(...) log::get_instance()->write_log(LOG_LEVEL::WARN, ##__VA_ARGS__)
 #define LOG_ERROR(...) log::get_instance()->write_log(LOG_LEVEL::ERROR, ##__VA_ARGS__)
+#define LOG_FLUSH() log::get_instance()->flush();
 
 #endif
