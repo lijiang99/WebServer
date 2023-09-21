@@ -1,6 +1,15 @@
-server: main.cpp ./pool/thread_pool.h ./http/http_connection.cpp ./http/http_connection.h ./log/log.cpp ./log/log.h ./pool/connection_pool.cpp ./pool/connection_pool.h
-	g++ -o server main.cpp ./pool/thread_pool.h ./http/http_connection.cpp ./http/http_connection.h ./log/log.cpp ./log/log.h ./pool/connection_pool.cpp ./pool/connection_pool.h -lpthread -lmysqlclient -std=c++20 -D NDEBUG
+server: main.o http_connection.o log.o connection_pool.o
+	g++ -o server main.o http_connection.o log.o connection_pool.o \
+		-lmysqlclient -std=c++20 -D NDEBUG
 
+main.o : main.cpp
+	g++ -c main.cpp -std=c++20 -D NDEBUG
+http_connection.o : ./http/http_connection.cpp
+	g++ -c ./http/http_connection.cpp -std=c++20 -D NDEBUG
+log.o : ./log/log.cpp
+	g++ -c ./log/log.cpp -std=c++20 -D NDEBUG
+connection_pool.o : ./pool/connection_pool.cpp
+	g++ -c ./pool/connection_pool.cpp -std=c++20 -D NDEBUG
 
 clean:
-	rm  -r server
+	rm  -r server ./*.o WebServer*.log
