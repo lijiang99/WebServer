@@ -1,16 +1,25 @@
-objects = main.o http_connection.o log.o connection_pool.o
-server : $(objects)
-	g++ -o server $(objects) -lmysqlclient -std=c++20 -D NDEBUG
+CXX := g++
+CXXFLAGS := -std=c++20
 
-main.o : main.cpp
-	g++ -c main.cpp -std=c++20 -D NDEBUG
-http_connection.o : ./http/http_connection.cpp
-	g++ -c ./http/http_connection.cpp -std=c++20 -D NDEBUG
-log.o : ./log/log.cpp
-	g++ -c ./log/log.cpp -std=c++20 -D NDEBUG
-connection_pool.o : ./pool/connection_pool.cpp
-	g++ -c ./pool/connection_pool.cpp -std=c++20 -D NDEBUG
+TARGET := server
+OBJS := main.o http_connection.o log.o connection_pool.o
+
+DEBUGE := 1
+ifeq ($(DEBUGE), 1)
+	CXXFLAGS += -g -Wall
+else
+	CXXFLAGS += -O2 -D NDEBUG
+endif
+
+vpath %.h http:log:pool
+vpath %.cpp http:log:pool
+
+build: $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJS) -lmysqlclient
+
+$(OBJS): %.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 .PHONY : clean
 clean:
-	-rm server $(objects) WebServer*.log
+	-rm -f $(TARGET) $(OBJS) WebServer*.log
