@@ -107,6 +107,8 @@ class timer_heap {
 		void pop_timer();
 		// 删除堆中任意位置的定时器
 		void del_timer(Timer *timer);
+		// 调整堆中任意位置的定时器
+		void adjust_timer(Timer *timer);
 
 		// 心搏函数
 		void tick();
@@ -146,7 +148,7 @@ bool timer_heap<Timer>::shift_down(std::size_t hole_idx) {
 template <typename Timer>
 void timer_heap<Timer>::push_timer(Timer *timer) {
 #ifndef NDEBUG
-	std::cout << "\nadd timer into timer heap..." << std::endl;
+	std::cout << "\npush timer into timer heap..." << std::endl;
 #endif
 	// 新定时器的初始id为尾元素后一个索引位置
 	timer->id = _heap.size();
@@ -184,7 +186,7 @@ void timer_heap<Timer>::pop_timer() {
 template <typename Timer>
 void timer_heap<Timer>::del_timer(Timer *timer) {
 #ifndef NDEBUG
-	std::cout << "\ndel timer from timer heap..." << std::endl;
+	std::cout << "\ndelete timer from timer heap..." << std::endl;
 #endif
 	// 首先根据id快速定位定时器在堆中的位置
 	std::size_t hole_idx = timer->id;
@@ -195,6 +197,25 @@ void timer_heap<Timer>::del_timer(Timer *timer) {
 	_heap.pop_back();
 	// 如果上滤不成功就尝试下滤
 	if (!shift_up(hole_idx)) shift_down(hole_idx);
+#ifndef NDEBUG
+	for (std::size_t i = 0; i < _heap.size(); ++i) {
+		std::cout << get_format_time(_heap[i]->expire) << " id: " << _heap[i]->id << std::endl;
+	}
+#endif
+}
+
+// 调整堆中任意位置的定时器，一般用于延长定时器时间的情况
+template <typename Timer>
+void timer_heap<Timer>::adjust_timer(Timer *timer) {
+#ifndef NDEBUG
+	std::cout << "\nadjust timer from timer heap..." << std::endl;
+#endif
+	// 首先根据id快速定位定时器在堆中的位置
+	std::size_t hole_idx = timer->id;
+	// 如果下滤不成功就尝试上滤
+	// 由于通常是用于延长定时器时间的
+	// 所以对于最小堆来说，应该优先执行下滤
+	if (!shift_down(hole_idx)) shift_up(hole_idx);
 #ifndef NDEBUG
 	for (std::size_t i = 0; i < _heap.size(); ++i) {
 		std::cout << get_format_time(_heap[i]->expire) << " id: " << _heap[i]->id << std::endl;
